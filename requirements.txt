@@ -1,6 +1,10 @@
 certifi==2017.7.27.1
 chardet==3.0.4
+html5lib==0.999999999
 idna==2.6
+mechanize==0.3.6
 requests==2.18.4
 selenium==3.6.0
+six==1.11.0
 urllib3==1.22
+webencodings==0.5.1
