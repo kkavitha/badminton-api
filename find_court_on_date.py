@@ -1,26 +1,23 @@
-import mechanize
-import cookielib
+import mechanicalsoup
 
-br = mechanize.Browser()
-cj = cookielib.LWPCookieJar()
-br.set_cookiejar(cj)
-br.set_handle_equiv(True)
-br.set_handle_gzip(True)
-br.set_handle_redirect(True)
-br.set_handle_referer(True)
-br.set_handle_robots(False)
 
-r = br.open('http://www.booknplay.in')
-html = r.read()
-for f in br.forms():
-    f.set_all_readonly(False)
-br.select_form(nr=0)
-form = br.form
-form['data[Ground][area]'] = ['OMR / Thuraipakkam']
-form['data[Ground][date]'] = '2017-10-28'
-br.submit()
-print br.response().read()
+def submit_for_date(date):
+    browser = mechanicalsoup.StatefulBrowser()
+    browser.open('http://www.booknplay.in')
+    browser.select_form('#contact-formm')
+    browser['data[Ground][date]'] = date
+    browser.submit_selected()
+
+
+def get_locations():
+    br = mechanicalsoup.StatefulBrowser()
+    r = br.open('http://www.booknplay.in')
+    locations = []
+    options = r.soup.find_all("select")[1].find_all("option")
+    map(lambda x: locations.append(x["value"]), options)
+    print locations
 
 
 
-
+# submit_for_date('2017-11-2')
+get_locations()
