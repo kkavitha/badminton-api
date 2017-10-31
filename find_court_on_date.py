@@ -18,6 +18,5 @@ def get_locations():
     print locations
 
 
-
-# submit_for_date('2017-11-2')
+submit_for_date('2017-11-2')
 get_locations()
