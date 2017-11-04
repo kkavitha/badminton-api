@@ -1,6 +1,6 @@
 echo "Activating virtualenv.."
 
-VENV_DIR=$(dirname "${BASH_SOURCE[0]}")/badminton_venv
+VENV_DIR=$(dirname "${BASH_SOURCE[0]}")/venv
 export PYTHONPATH=`pwd`:$PYTHONPATH
 
 source $VENV_DIR/bin/activate
