@@ -1,6 +1,3 @@
 echo "Activating virtualenv.."
 
-VENV_DIR=$(dirname "${BASH_SOURCE[0]}")/venv
-export PYTHONPATH=`pwd`:$PYTHONPATH
-
-source $VENV_DIR/bin/activate
+source ./venv/bin/activate
