@@ -11,6 +11,7 @@ app.config['CORS_HEADERS'] = 'Content-Type'
 
 @app.route("/locations")
 def main():
+    print ('Getting locations')
     locations = get_locations()
     json = {"locations": locations}
     return jsonify(json)
@@ -20,8 +21,9 @@ def main():
 def get_availabilities():
     slots = request.json["slots"]
     areas = request.json["area"]
-    get_availability(areas, slots)
-    return jsonify(availability="")
+    print(areas)
+    availability = get_availability(areas, slots)
+    return jsonify(availability=availability)
 
 
 if __name__ == "__main__":
