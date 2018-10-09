@@ -1,81 +1,81 @@
-import datetime
 import re
 
 import mechanicalsoup
 
-from constants import slots as time_slots
+locations = {"Thoraipakkam": ['12.9416037', '80.23620959999994']
+             # ,"Perungudi": ['12.9653652', '80.24610570000004']
+             # ,"Thiruvanmyur": ['12.9830269', '80.2594001']
+             # ,"Velachery": ['12.975971', '80.22120919999998']
+             # ,"Adambakkam": ['12.9874863', '80.20459189999997']
+             }
+br = mechanicalsoup.StatefulBrowser()
 
 
-def find_courts(browser, date, page):
-    availability = []
-    divs = page.soup.find_all('div', class_='booking_list')
-    for div in divs:
-        data = {}
-        center_divs = div.find_all("div", class_="bl_info")
-        for center_div in center_divs:
-            print ("Fetch name of the court")
-            court_name = center_div.a.strong.contents[0]
-            data[court_name] = []
-            court_view_slot_buttons = div.find_all("button", class_="view_slot")
-            for court_view_slot_button in court_view_slot_buttons:
-                print ("Fetch slot availability")
-                value = court_view_slot_button["value"]
-                url = "http://www.booknplay.in/grounds/booking_layout/" + value + "/" + date + "/1"
-                r = browser.open(url)
-                divs = r.soup.find_all("div", id="court_lists")
-                courts = divs[0].find_all("a", href=re.compile(r'court_lists'))
-                for court in courts:
-                    court_availability = {}
-                    court_id = court["href"][1:]
-                    court_number = court.contents[0]
-                    court_availability[court_number] = []
-                    court_div = r.soup.find_all("div", id=court_id)
-                    slots = court_div[0].find_all("td", class_="available single_slot")
-                    print('Adding available slots for '+ court_number)
-                    for slot in slots:
-                        court_availability[court_number].append(time_slots[slot["value"][-2:]])
-                    data[court_name].append(court_availability)
-        availability.append(data)
-    return availability
+def find_availability():
+    free_slots = {}
+    for location in locations:
+        lat = locations[location][0]
+        long = locations[location][1]
+        json = 'https://www.booknplay.in/grounds/new_search/7/Chennai/' + lat + '/' + long + '/0/1000.json'
+        r = br.open(json)
+        find_venues_in_location(free_slots, r)
+        print(free_slots)
 
 
-def submit_for_date(date, areas):
-    for area in areas:
-        browser, page = select_area(area, date)
-        print ('Finding courts')
-        return find_courts(browser, date, page)
+def find_venues_in_location(free_slots, r):
+    venues = r.soup.find_all("div", {"class": "content venue"})
+    for venue in venues:
+        courts_ = {}
+        venue_name = find_venue_name(venue)
+        free_slots[venue_name] = courts_
+        link = venue.find("a")['href']
+        r = br.open('https://www.booknplay.in/' + link)
+        final_venues = r.soup.find_all("a", {"href": re.compile("users/login*")})
+        for final_venue in final_venues:
+            get_courts(final_venue, courts_)
 
 
-def select_area(area, date):
-    browser = mechanicalsoup.StatefulBrowser()
-    browser.open('http://www.booknplay.in')
-    browser.select_form('#contact-formm')
-    browser['data[Ground][date]'] = date
-    browser['data[Ground][area]'] = area
-    page = browser.submit_selected()
-    return browser, page
+def find_venue_name(venue):
+    venue_name = venue.find("div", {"class": "venue-name"}).find("a").text
+    return venue_name
 
 
-def get_locations():
-    br = mechanicalsoup.StatefulBrowser()
-    r = br.open('http://www.booknplay.in')
-    locations = []
-    options = r.soup.find_all("select")[1].find_all("option")
-    for option in options:
-        locations.append(option["value"])
-    return locations
+def get_courts(final_venue, courts_):
+    split_ = final_venue['href'].split("=")[1]
+    r = br.open(split_)
+    book_now_button = r.soup.find("div", {"id": re.compile("booknow*")})
+    if book_now_button is not None:
+        dates = {}
+        venue_modal_id = book_now_button["data-id"]
+        url = "https://www.booknplay.in/grounds/venue_modal/" + venue_modal_id + "/0"
+        r = br.open(url)
+        courts = r.soup.find("div", {"id": "div_court_list"}).find_all("a")
+        court_number = 1
+        for court in courts:
+            courts_[court_number] = dates
+            court_id = court["data-tab"]
+            court_ = r.soup.find("div", {"data-tab": court_id})
+            find_available_days(court_, court_id, dates)
+            court_number += 1
 
 
-def get_availability(areas, slots):
-    date_formate = '%Y-%m-%d'
-    today = datetime.date.today().strftime(date_formate)
-    tomorrow = (datetime.date.today() + datetime.timedelta(days=1)).strftime(date_formate)
-    day_after_tomorrow = (datetime.date.today() + datetime.timedelta(days=2)).strftime(date_formate)
-    # submit_for_date(str(today))
-    # submit_for_date(str(tomorrow))
-    # areas = get_locations()
-    return submit_for_date(str(day_after_tomorrow), areas)
+def find_available_days(court_, court_id, dates):
+    id_ = "date_" + court_id.split("_")[1] + "_"
+    s = '{}*'.format(id_)
+    days = court_.find_all("div", {"id": re.compile(s)})
+    for day in days:
+        find_available_slots_in_a_day(day, dates)
 
-# get_availability(["Thiruvanmiyur"], "")
-# submit_for_date('2017-11-2',"")
-# get_locations()
+
+def find_available_slots_in_a_day(day, dates):
+    date = day['id'].split("_")[2]
+    venue_slots = []
+    slot_row = day.find_all("div", {"class": "slot-row"})[3]
+    slots = slot_row.find("div", {"class": "slot"})
+    if slots is not None:
+        for slot in slots:
+            venue_slots.append(slot)
+        dates[date] = venue_slots
+
+
+find_availability()
