@@ -1,6 +1,9 @@
 import re
-
 import mechanicalsoup
+from flask import Flask
+from flask import jsonify
+
+app = Flask(__name__)
 
 locations = {"Thoraipakkam": ['12.9416037', '80.23620959999994']
              # ,"Perungudi": ['12.9653652', '80.24610570000004']
@@ -11,15 +14,18 @@ locations = {"Thoraipakkam": ['12.9416037', '80.23620959999994']
 br = mechanicalsoup.StatefulBrowser()
 
 
+@app.route("/")
 def find_availability():
-    free_slots = {}
+    locations_result = {}
     for location in locations:
+        free_slots = {}
         lat = locations[location][0]
         long = locations[location][1]
         json = 'https://www.booknplay.in/grounds/new_search/7/Chennai/' + lat + '/' + long + '/0/1000.json'
         r = br.open(json)
+        locations_result[location] = free_slots
         find_venues_in_location(free_slots, r)
-        print(free_slots)
+        return jsonify(slots=locations_result)
 
 
 def find_venues_in_location(free_slots, r):
@@ -78,4 +84,5 @@ def find_available_slots_in_a_day(day, dates):
         dates[date] = venue_slots
 
 
-find_availability()
+if __name__ == "__main__":
+    app.run()
